@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mortgage Sankey Diagram</title>
+  <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f5; padding: 20px; }
+    h1 { text-align: center; margin-bottom: 24px; color: #333; }
+    .container { max-width: 1000px; margin: 0 auto; background: #fff; padding: 24px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .control-group { margin-bottom: 20px; }
+    label { display: block; font-weight: 600; margin-bottom: 8px; color: #444; }
+    .slider-container { display: flex; align-items: center; gap: 12px; }
+    input[type="range"] { flex: 1; height: 8px; cursor: pointer; }
+    .value-display { min-width: 80px; text-align: right; font-weight: 500; color: #666; }
+    .radio-group { display: flex; gap: 20px; margin-bottom: 16px; }
+    .radio-group label { display: flex; align-items: center; gap: 6px; font-weight: 400; cursor: pointer; }
+    #chart { width: 100%; height: 500px; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Mortgage Sankey Diagram</h1>
+    
+    <div class="control-group">
+      <label>Mortgage Amount</label>
+      <div class="slider-container">
+        <input type="range" id="mortgage" min="100" max="900" step="50" value="250">
+        <span class="value-display" id="mortgage-val">$250k</span>
+      </div>
+    </div>
+    
+    <div class="control-group">
+      <div class="radio-group">
+        <label><input type="radio" name="rate-mode" value="manual" checked> Manual Rate</label>
+        <label><input type="radio" name="rate-mode" value="historical"> Historical Rate</label>
+      </div>
+    </div>
+    
+    <div class="control-group" id="rate-manual">
+      <label>Interest Rate</label>
+      <div class="slider-container">
+        <input type="range" id="rate" min="1" max="18" step="0.25" value="6">
+        <span class="value-display" id="rate-val">6.00%</span>
+      </div>
+    </div>
+    
+    <div class="control-group hidden" id="rate-historical">
+      <label>Historical Year</label>
+      <div class="slider-container">
+        <input type="range" id="hist-year" min="1971" max="2025" step="1" value="2000">
+        <span class="value-display" id="hist-year-val">2000 (8.15%)</span>
+      </div>
+    </div>
+    
+    <div class="control-group">
+      <label>Loan Term (Years)</label>
+      <div class="slider-container">
+        <input type="range" id="years" min="5" max="30" step="5" value="25">
+        <span class="value-display" id="years-val">25 years</span>
+      </div>
+    </div>
+    
+    <div id="chart"></div>
+  </div>
+
+<script>
+const historicalRates = {
+  1971:7.33,1972:7.46,1973:7.44,1974:8.56,1975:9.6,1976:9.1,1977:8.7,1978:9.0,1979:10.38,
+  1980:12.85,1981:14.95,1982:17.3,1983:13.46,1984:13.43,1985:13.1,1986:10.81,1987:9.37,
+  1988:10.5,1989:10.8,1990:9.83,1991:9.56,1992:8.24,1993:8.07,1994:7.23,1995:9.22,
+  1996:7.02,1997:7.67,1998:7.03,1999:6.79,2000:8.15,2001:7.07,2002:7.14,2003:5.85,
+  2004:5.87,2005:5.77,2006:6.21,2007:6.18,2008:6.07,2009:5.01,2010:5.09,2011:4.77,
+  2012:3.91,2013:3.34,2014:4.53,2015:3.73,2016:3.97,2017:4.2,2018:3.95,2019:4.51,
+  2020:3.72,2021:2.65,2022:3.22,2023:6.48,2024:6.62,2025:6.91
+};
+
+const $ = id => document.getElementById(id);
+const mortgageSlider = $('mortgage'), rateSlider = $('rate'), histYearSlider = $('hist-year'), yearsSlider = $('years');
+const mortgageVal = $('mortgage-val'), rateVal = $('rate-val'), histYearVal = $('hist-year-val'), yearsVal = $('years-val');
+const rateManualDiv = $('rate-manual'), rateHistDiv = $('rate-historical');
+
+function generateMortgageNodes(mortgageK, rate, years) {
+  const mortgage = mortgageK * 1000;
+  const monthlyRate = rate / 12;
+  const nPayments = years * 12;
+  const monthlyPayment = mortgage * (monthlyRate * Math.pow(1 + monthlyRate, nPayments)) / (Math.pow(1 + monthlyRate, nPayments) - 1);
+  
+  let balance = mortgage;
+  const yearlyBreakdown = [];
+  for (let y = 0; y < years; y++) {
+    let yearPrincipal = 0, yearInterest = 0;
+    for (let m = 0; m < 12; m++) {
+      const interestPayment = balance * monthlyRate;
+      const principalPayment = monthlyPayment - interestPayment;
+      yearInterest += interestPayment;
+      yearPrincipal += principalPayment;
+      balance -= principalPayment;
+    }
+    yearlyBreakdown.push([yearPrincipal, yearInterest]);
+  }
+  
+  const label = ["Total Paid", "Principal", "Interest"];
+  const source = [], target = [], value = [];
+  const numGroups = Math.ceil(years / 5);
+  
+  for (let i = 0; i < numGroups; i++) {
+    const start = i * 5, end = Math.min((i + 1) * 5, years);
+    label.push(`Years ${start + 1}–${end}`);
+    let groupPrincipal = 0, groupInterest = 0;
+    for (let j = start; j < end; j++) {
+      groupPrincipal += yearlyBreakdown[j][0];
+      groupInterest += yearlyBreakdown[j][1];
+    }
+    source.push(i + 3, i + 3);
+    target.push(1, 2);
+    value.push(groupPrincipal, groupInterest);
+  }
+  
+  const totalInterest = yearlyBreakdown.reduce((s, [, i]) => s + i, 0);
+  source.push(1, 2);
+  target.push(0, 0);
+  value.push(mortgage, totalInterest);
+  
+  return { label, source, target, value };
+}
+
+function getActiveRate() {
+  const mode = document.querySelector('input[name="rate-mode"]:checked').value;
+  return mode === 'historical' ? historicalRates[+histYearSlider.value] / 100 : +rateSlider.value / 100;
+}
+
+function updateChart() {
+  const mortgageK = +mortgageSlider.value;
+  const years = +yearsSlider.value;
+  const rate = getActiveRate();
+  const { label, source, target, value } = generateMortgageNodes(mortgageK, rate, years);
+  
+  const data = [{
+    type: 'sankey',
+    orientation: 'h',
+    node: { label, pad: 50, thickness: 30, line: { color: 'black', width: 1 } },
+    link: { source, target, value, line: { color: 'black', width: 0.5 } }
+  }];
+  
+  const layout = { font: { size: 12 }, margin: { t: 20, b: 20 } };
+  Plotly.react('chart', data, layout, { responsive: true });
+}
+
+function updateDisplays() {
+  mortgageVal.textContent = `$${mortgageSlider.value}k`;
+  rateVal.textContent = `${(+rateSlider.value).toFixed(2)}%`;
+  const yr = +histYearSlider.value;
+  histYearVal.textContent = `${yr} (${historicalRates[yr].toFixed(2)}%)`;
+  yearsVal.textContent = `${yearsSlider.value} years`;
+}
+
+function toggleRateMode() {
+  const mode = document.querySelector('input[name="rate-mode"]:checked').value;
+  rateManualDiv.classList.toggle('hidden', mode !== 'manual');
+  rateHistDiv.classList.toggle('hidden', mode !== 'historical');
+  updateChart();
+}
+
+[mortgageSlider, rateSlider, histYearSlider, yearsSlider].forEach(el => {
+  el.addEventListener('input', () => { updateDisplays(); updateChart(); });
+});
+document.querySelectorAll('input[name="rate-mode"]').forEach(el => el.addEventListener('change', toggleRateMode));
+
+updateDisplays();
+updateChart();
+</script>
+</body>
+</html>
