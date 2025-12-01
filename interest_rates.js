@@ -1,4 +1,4 @@
-const filePath = "data/merged_mortgage_data.csv";
+const filePath = "merged_mortgage_data.csv";
 
 const margin = { top: 40, right: 150, bottom: 50, left: 70 },
       width = 1100 - margin.left - margin.right,
