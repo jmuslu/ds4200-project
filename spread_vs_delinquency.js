@@ -7,7 +7,7 @@ function zscore(arr) {
     return arr.map(v => (v - mean) / std);
 }
 
-d3.csv("data/merged_mortgage_data.csv").then(raw => {
+d3.csv("merged_mortgage_data.csv").then(raw => {
     // ---- 1. CLEAN DATA and DROP N/A values ----
     const data = raw
         .map(d => ({
