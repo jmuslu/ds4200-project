@@ -27,7 +27,7 @@ d3.csv("merged_mortgage_data.csv").then(raw => {
     console.log("Valid data points after dropping N/A:", data.length);
 
     if (data.length < 10) {
-        d3.select("#spread_scatter_chart")
+        d3.select("#visualization")
             .append("div")
             .style("color", "red")
             .style("padding", "20px")
@@ -54,7 +54,7 @@ d3.csv("merged_mortgage_data.csv").then(raw => {
     const height = 500;
     const margin = {top: 50, right: 40, bottom: 60, left: 60};
     
-    const svg = d3.select("#spread_scatter_chart")
+    const svg = d3.select("#visualization")
         .append("svg")
         .attr("width", width)
         .attr("height", height);
