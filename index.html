@@ -15,126 +15,112 @@
 
         // Interest Rates Chart Implementation  
         function initInterestRatesChart() {
-            // Sample data representing the 2021-2025 period with the three rate types
-            const sampleData = [
-                {observation_date: "2021-01-01", "30yr_fixed_rate": "2.65", "15yr_fixed_rate": "2.16", "30yr_conforming_fico740": "2.25"},
-                {observation_date: "2021-06-01", "30yr_fixed_rate": "2.98", "15yr_fixed_rate": "2.40", "30yr_conforming_fico740": "2.58"},
-                {observation_date: "2021-12-01", "30yr_fixed_rate": "3.11", "15yr_fixed_rate": "2.45", "30yr_conforming_fico740": "2.75"},
-                {observation_date: "2022-01-01", "30yr_fixed_rate": "3.22", "15yr_fixed_rate": "2.43", "30yr_conforming_fico740": "2.82"},
-                {observation_date: "2022-06-01", "30yr_fixed_rate": "5.81", "15yr_fixed_rate": "4.92", "30yr_conforming_fico740": "5.41"},
-                {observation_date: "2022-12-01", "30yr_fixed_rate": "6.81", "15yr_fixed_rate": "6.16", "30yr_conforming_fico740": "6.41"},
-                {observation_date: "2023-01-01", "30yr_fixed_rate": "6.48", "15yr_fixed_rate": "5.76", "30yr_conforming_fico740": "6.08"},
-                {observation_date: "2023-06-01", "30yr_fixed_rate": "6.71", "15yr_fixed_rate": "6.06", "30yr_conforming_fico740": "6.31"},
-                {observation_date: "2023-12-01", "30yr_fixed_rate": "6.95", "15yr_fixed_rate": "6.38", "30yr_conforming_fico740": "6.55"},
-                {observation_date: "2024-01-01", "30yr_fixed_rate": "6.62", "15yr_fixed_rate": "5.99", "30yr_conforming_fico740": "6.22"},
-                {observation_date: "2024-06-01", "30yr_fixed_rate": "7.04", "15yr_fixed_rate": "6.44", "30yr_conforming_fico740": "6.64"},
-                {observation_date: "2024-12-01", "30yr_fixed_rate": "6.85", "15yr_fixed_rate": "6.28", "30yr_conforming_fico740": "6.45"},
-                {observation_date: "2025-01-01", "30yr_fixed_rate": "6.91", "15yr_fixed_rate": "6.34", "30yr_conforming_fico740": "6.51"}
-            ];
-
-            // Process the data
-            const filtered = sampleData.filter(d =>
-                d["30yr_fixed_rate"] !== "" &&
-                d["15yr_fixed_rate"] !== "" &&
-                d["30yr_conforming_fico740"] !== ""
-            );
-            
-            filtered.forEach(d => {
-                d.date = new Date(d.observation_date);
-                d.y30 = +d["30yr_fixed_rate"];
-                d.y15 = +d["15yr_fixed_rate"];
-                d.conf = +d["30yr_conforming_fico740"];
-            });
-
+            const filePath = "merged_mortgage_data.csv";
             const margin = { top: 40, right: 150, bottom: 50, left: 70 },
-                  width = 900 - margin.left - margin.right,
+                  width = 1100 - margin.left - margin.right,
                   height = 450 - margin.top - margin.bottom;
-
-            d3.select("#interest-rates-chart").selectAll("*").remove();
             
-            const svg = d3.select("#interest-rates-chart")
-                .append("svg")
-                .attr("width", width + margin.left + margin.right)
-                .attr("height", height + margin.top + margin.bottom)
-                .append("g")
-                .attr("transform", `translate(${margin.left},${margin.top})`);
-            
-            const x = d3.scaleTime()
-                .domain(d3.extent(filtered, d => d.date))
-                .range([0, width]);
-            
-            const y = d3.scaleLinear()
-                .domain([0, d3.max(filtered, d => Math.max(d.y30, d.y15, d.conf))])
-                .range([height, 0]);
-            
-            const lineGen = (key) =>
-                d3.line()
-                    .x(d => x(d.date))
-                    .y(d => y(d[key]))
-                    .curve(d3.curveMonotoneX);
-            
-            // Draw lines
-            svg.append("path")
-                .datum(filtered)
-                .attr("fill", "none")
-                .attr("stroke", "#3b6ea1")
-                .attr("stroke-width", 2)
-                .attr("d", lineGen("y30"));
-            
-            svg.append("path")
-                .datum(filtered)
-                .attr("fill", "none")
-                .attr("stroke", "#e89a2f")
-                .attr("stroke-width", 2)
-                .attr("d", lineGen("y15"));
-            
-            svg.append("path")
-                .datum(filtered)
-                .attr("fill", "none")
-                .attr("stroke", "#1e6b2d")
-                .attr("stroke-width", 2)
-                .attr("d", lineGen("conf"));
-            
-            // Axes
-            svg.append("g")
-                .attr("transform", `translate(0,${height})`)
-                .call(d3.axisBottom(x));
-            
-            svg.append("g").call(d3.axisLeft(y));
-            
-            // Add title
-            svg.append("text")
-                .attr("x", width / 2)
-                .attr("y", -10)
-                .attr("text-anchor", "middle")
-                .style("font-size", "16px")
-                .style("font-weight", "600")
-                .text("Mortgage Interest Rates (2021-2025)");
-
-            // Y-axis label
-            svg.append("text")
-                .attr("transform", "rotate(-90)")
-                .attr("y", 0 - margin.left)
-                .attr("x", 0 - (height / 2))
-                .attr("dy", "1em")
-                .style("text-anchor", "middle")
-                .text("Interest Rate (%)");
-            
-            // Legend
-            const legend = svg.append("g")
-                .attr("transform", `translate(${width + 20}, 20)`);
-            
-            const items = [
-                { color: "#3b6ea1", text: "30-Year Fixed" },
-                { color: "#e89a2f", text: "15-Year Fixed" },
-                { color: "#1e6b2d", text: "30-Year FICO 740+" }
-            ];
-            
-            items.forEach((d, i) => {
-                let g = legend.append("g").attr("transform", `translate(0, ${i*25})`);
-                g.append("rect").attr("width", 18).attr("height", 18).attr("fill", d.color);
-                g.append("text").attr("x", 25).attr("y", 14).style("font-size", "14px").text(d.text);
-            });
+            // Add error handling for the CSV loading
+            d3.csv(filePath)
+                .then(data => {
+                    console.log("CSV loaded successfully, processing data...");
+                    
+                    // Filter: keep rows where all three rates exist
+                    const filtered = data.filter(d =>
+                        d["30yr_fixed_rate"] !== "" &&
+                        d["15yr_fixed_rate"] !== "" &&
+                        d["30yr_conforming_fico740"] !== ""
+                    );
+                    
+                    filtered.forEach(d => {
+                        d.date = new Date(d.observation_date);
+                        d.y30 = +d["30yr_fixed_rate"];
+                        d.y15 = +d["15yr_fixed_rate"];
+                        d.conf = +d["30yr_conforming_fico740"];
+                    });
+                    
+                    console.log("Valid data points:", filtered.length);
+                    console.log("Data processing complete, creating visualization...");
+                    
+                    // Clear any existing content first
+                    d3.select("#interest-rates-chart").selectAll("*").remove();
+                    
+                    const svg = d3.select("#interest-rates-chart")
+                        .append("svg")
+                        .attr("width", width + margin.left + margin.right)
+                        .attr("height", height + margin.top + margin.bottom)
+                        .append("g")
+                        .attr("transform", `translate(${margin.left},${margin.top})`);
+                    
+                    const x = d3.scaleTime()
+                        .domain(d3.extent(filtered, d => d.date))
+                        .range([0, width]);
+                    
+                    const y = d3.scaleLinear()
+                        .domain([0, d3.max(filtered, d => Math.max(d.y30, d.y15, d.conf))])
+                        .range([height, 0]);
+                    
+                    const lineGen = (key) =>
+                        d3.line()
+                            .x(d => x(d.date))
+                            .y(d => y(d[key]))
+                            .curve(d3.curveMonotoneX);
+                    
+                    // Draw lines
+                    svg.append("path")
+                        .datum(filtered)
+                        .attr("fill", "none")
+                        .attr("stroke", "#3b6ea1")
+                        .attr("stroke-width", 2)
+                        .attr("d", lineGen("y30"));
+                    
+                    svg.append("path")
+                        .datum(filtered)
+                        .attr("fill", "none")
+                        .attr("stroke", "#e89a2f")
+                        .attr("stroke-width", 2)
+                        .attr("d", lineGen("y15"));
+                    
+                    svg.append("path")
+                        .datum(filtered)
+                        .attr("fill", "none")
+                        .attr("stroke", "#1e6b2d")
+                        .attr("stroke-width", 2)
+                        .attr("d", lineGen("conf"));
+                    
+                    // Axes
+                    svg.append("g")
+                        .attr("transform", `translate(0,${height})`)
+                        .call(d3.axisBottom(x));
+                    
+                    svg.append("g").call(d3.axisLeft(y));
+                    
+                    // Legend
+                    const legend = svg.append("g")
+                        .attr("transform", `translate(${width + 20}, 20)`);
+                    
+                    const items = [
+                        { color: "#3b6ea1", text: "30-Year Fixed" },
+                        { color: "#e89a2f", text: "15-Year Fixed" },
+                        { color: "#1e6b2d", text: "30-Year Conforming" }
+                    ];
+                    
+                    items.forEach((d, i) => {
+                        let g = legend.append("g").attr("transform", `translate(0, ${i*25})`);
+                        g.append("rect").attr("width", 18).attr("height", 18).attr("fill", d.color);
+                        g.append("text").attr("x", 25).attr("y", 14).style("font-size", "14px").text(d.text);
+                    });
+                    
+                    console.log("Visualization created successfully!");
+                })
+                .catch(error => {
+                    console.error("Error loading or processing data:", error);
+                    d3.select("#interest-rates-chart")
+                        .append("div")
+                        .style("color", "red")
+                        .style("padding", "20px")
+                        .text("Error loading data. Check console for details.");
+                });
         }
 
         // Spread vs Delinquency Chart Implementation
@@ -146,138 +132,165 @@
                 return arr.map(v => (v - mean) / std);
             }
 
-            // Sample data representing the relationship between spreads and delinquency
-            const sampleData = [];
-            for (let i = 0; i < 200; i++) {
-                const delinquency = Math.random() * 2 + Math.sin(i * 0.1) * 0.5 + 1.5;
-                const spread = delinquency * 0.3 + Math.random() * 0.4 + 0.2;
-                sampleData.push({
-                    date: new Date(2021, 0, 1 + i * 7), // Weekly data points
-                    delinquency: delinquency,
-                    conforming: 3.5 + Math.random() * 0.5,
-                    nonconforming: 3.5 + Math.random() * 0.5 + spread
+            // Add error handling for the CSV loading
+            d3.csv("merged_mortgage_data.csv")
+                .then(raw => {
+                    console.log("CSV loaded successfully, processing data...");
+                    
+                    // ---- 1. CLEAN DATA and DROP N/A values ----
+                    const data = raw
+                        .map(d => ({
+                            date: new Date(d.observation_date),
+                            delinquency: d.delinquency_rate_interpolated === "" ? null : +d.delinquency_rate_interpolated,
+                            conforming: d["30yr_conforming_fico740"] === "" ? null : +d["30yr_conforming_fico740"],
+                            nonconforming: d["30yr_fixed_rate"] === "" ? null : +d["30yr_fixed_rate"]
+                        }))
+                        // FILTER OUT rows with missing data
+                        .filter(d => 
+                            d.delinquency !== null && !isNaN(d.delinquency) &&
+                            d.conforming !== null && !isNaN(d.conforming) &&
+                            d.nonconforming !== null && !isNaN(d.nonconforming)
+                        )
+                        .sort((a, b) => a.date - b.date);
+
+                    console.log("Valid data points after dropping N/A:", data.length);
+
+                    if (data.length < 10) {
+                        d3.select("#spread-delinquency-chart")
+                            .append("div")
+                            .style("color", "red")
+                            .style("padding", "20px")
+                            .text(`Insufficient data: only ${data.length} rows have all required values (conforming rate, delinquency, and fixed rate).`);
+                        return;
+                    }
+
+                    // ---- 2. Compute spread ----
+                    data.forEach(d => {
+                        d.spread = d.nonconforming - d.conforming;
+                    });
+
+                    // ---- 3. Compute Z-scores ----
+                    const spreadZ = zscore(data.map(d => d.spread));
+                    const delinZ = zscore(data.map(d => d.delinquency));
+                    
+                    data.forEach((d, i) => {
+                        d.spreadZ = spreadZ[i];
+                        d.delinZ = delinZ[i];
+                    });
+
+                    console.log("Data processing complete, creating visualization...");
+
+                    // ---- 4. Create the scatterplot ----
+                    const width = 800;
+                    const height = 500;
+                    const margin = {top: 50, right: 40, bottom: 60, left: 60};
+                    
+                    // Clear any existing content first
+                    d3.select("#spread-delinquency-chart").selectAll("*").remove();
+                    
+                    const svg = d3.select("#spread-delinquency-chart")
+                        .append("svg")
+                        .attr("width", width)
+                        .attr("height", height);
+
+                    const x = d3.scaleLinear()
+                        .domain(d3.extent(data, d => d.spreadZ))
+                        .range([margin.left, width - margin.right]);
+
+                    const y = d3.scaleLinear()
+                        .domain(d3.extent(data, d => d.delinZ))
+                        .range([height - margin.bottom, margin.top]);
+
+                    // Axes
+                    svg.append("g")
+                        .attr("transform", `translate(0, ${height - margin.bottom})`)
+                        .call(d3.axisBottom(x));
+
+                    svg.append("g")
+                        .attr("transform", `translate(${margin.left}, 0)`)
+                        .call(d3.axisLeft(y));
+
+                    // Points
+                    svg.append("g")
+                        .selectAll("circle")
+                        .data(data)
+                        .enter()
+                        .append("circle")
+                        .attr("cx", d => x(d.spreadZ))
+                        .attr("cy", d => y(d.delinZ))
+                        .attr("r", 2.5)
+                        .attr("fill", "steelblue")
+                        .attr("opacity", 0.6);
+
+                    // Compute and draw regression line
+                    const meanX = d3.mean(data, d => d.spreadZ);
+                    const meanY = d3.mean(data, d => d.delinZ);
+                    
+                    const numerator = d3.sum(data, d => (d.spreadZ - meanX) * (d.delinZ - meanY));
+                    const denominator = d3.sum(data, d => Math.pow(d.spreadZ - meanX, 2));
+                    const slope = numerator / denominator;
+                    const intercept = meanY - slope * meanX;
+                    
+                    const correlation = numerator / Math.sqrt(
+                        d3.sum(data, d => Math.pow(d.spreadZ - meanX, 2)) *
+                        d3.sum(data, d => Math.pow(d.delinZ - meanY, 2))
+                    );
+
+                    const xExtent = d3.extent(data, d => d.spreadZ);
+                    svg.append("line")
+                        .attr("x1", x(xExtent[0]))
+                        .attr("y1", y(slope * xExtent[0] + intercept))
+                        .attr("x2", x(xExtent[1]))
+                        .attr("y2", y(slope * xExtent[1] + intercept))
+                        .attr("stroke", "red")
+                        .attr("stroke-width", 2)
+                        .attr("stroke-dasharray", "5,5");
+
+                    // Title with correlation
+                    svg.append("text")
+                        .attr("x", width / 2)
+                        .attr("y", margin.top - 20)
+                        .attr("text-anchor", "middle")
+                        .style("font-size", "20px")
+                        .style("font-weight", "600")
+                        .text(`Spread vs Delinquency (Z-Scores) — r = ${correlation.toFixed(3)}`);
+
+                    // X label
+                    svg.append("text")
+                        .attr("x", width / 2)
+                        .attr("y", height - 15)
+                        .attr("text-anchor", "middle")
+                        .style("font-size", "14px")
+                        .text("Spread Z-Score");
+
+                    // Y label
+                    svg.append("text")
+                        .attr("transform", "rotate(-90)")
+                        .attr("x", -height / 2)
+                        .attr("y", 20)
+                        .attr("text-anchor", "middle")
+                        .style("font-size", "14px")
+                        .text("Delinquency Z-Score");
+
+                    // Info text
+                    svg.append("text")
+                        .attr("x", width - margin.right)
+                        .attr("y", margin.top - 5)
+                        .attr("text-anchor", "end")
+                        .style("font-size", "12px")
+                        .style("fill", "#666")
+                        .text(`n = ${data.length} days`);
+
+                    console.log("Visualization created successfully!");
+                })
+                .catch(error => {
+                    console.error("Error loading or processing data:", error);
+                    d3.select("#spread-delinquency-chart")
+                        .append("div")
+                        .style("color", "red")
+                        .style("padding", "20px")
+                        .text("Error loading data. Check console for details.");
                 });
-            }
-
-            // Process data like the original
-            const data = sampleData.filter(d => 
-                d.delinquency !== null && !isNaN(d.delinquency) &&
-                d.conforming !== null && !isNaN(d.conforming) &&
-                d.nonconforming !== null && !isNaN(d.nonconforming)
-            );
-
-            // Compute spread
-            data.forEach(d => {
-                d.spread = d.nonconforming - d.conforming;
-            });
-
-            // Compute Z-scores
-            const spreadZ = zscore(data.map(d => d.spread));
-            const delinZ = zscore(data.map(d => d.delinquency));
-            
-            data.forEach((d, i) => {
-                d.spreadZ = spreadZ[i];
-                d.delinZ = delinZ[i];
-            });
-
-            const width = 800;
-            const height = 500;
-            const margin = {top: 50, right: 40, bottom: 60, left: 60};
-            
-            d3.select("#spread-delinquency-chart").selectAll("*").remove();
-            
-            const svg = d3.select("#spread-delinquency-chart")
-                .append("svg")
-                .attr("width", width)
-                .attr("height", height);
-
-            const x = d3.scaleLinear()
-                .domain(d3.extent(data, d => d.spreadZ))
-                .range([margin.left, width - margin.right]);
-
-            const y = d3.scaleLinear()
-                .domain(d3.extent(data, d => d.delinZ))
-                .range([height - margin.bottom, margin.top]);
-
-            // Axes
-            svg.append("g")
-                .attr("transform", `translate(0, ${height - margin.bottom})`)
-                .call(d3.axisBottom(x));
-
-            svg.append("g")
-                .attr("transform", `translate(${margin.left}, 0)`)
-                .call(d3.axisLeft(y));
-
-            // Points
-            svg.append("g")
-                .selectAll("circle")
-                .data(data)
-                .enter()
-                .append("circle")
-                .attr("cx", d => x(d.spreadZ))
-                .attr("cy", d => y(d.delinZ))
-                .attr("r", 2.5)
-                .attr("fill", "steelblue")
-                .attr("opacity", 0.6);
-
-            // Compute and draw regression line
-            const meanX = d3.mean(data, d => d.spreadZ);
-            const meanY = d3.mean(data, d => d.delinZ);
-            
-            const numerator = d3.sum(data, d => (d.spreadZ - meanX) * (d.delinZ - meanY));
-            const denominator = d3.sum(data, d => Math.pow(d.spreadZ - meanX, 2));
-            const slope = numerator / denominator;
-            const intercept = meanY - slope * meanX;
-            
-            const correlation = numerator / Math.sqrt(
-                d3.sum(data, d => Math.pow(d.spreadZ - meanX, 2)) *
-                d3.sum(data, d => Math.pow(d.delinZ - meanY, 2))
-            );
-
-            const xExtent = d3.extent(data, d => d.spreadZ);
-            svg.append("line")
-                .attr("x1", x(xExtent[0]))
-                .attr("y1", y(slope * xExtent[0] + intercept))
-                .attr("x2", x(xExtent[1]))
-                .attr("y2", y(slope * xExtent[1] + intercept))
-                .attr("stroke", "red")
-                .attr("stroke-width", 2)
-                .attr("stroke-dasharray", "5,5");
-
-            // Title with correlation
-            svg.append("text")
-                .attr("x", width / 2)
-                .attr("y", margin.top - 20)
-                .attr("text-anchor", "middle")
-                .style("font-size", "18px")
-                .style("font-weight", "600")
-                .text(`Spread vs Delinquency (Z-Scores) — r = ${correlation.toFixed(3)}`);
-
-            // X label
-            svg.append("text")
-                .attr("x", width / 2)
-                .attr("y", height - 15)
-                .attr("text-anchor", "middle")
-                .style("font-size", "14px")
-                .text("Spread Z-Score");
-
-            // Y label
-            svg.append("text")
-                .attr("transform", "rotate(-90)")
-                .attr("x", -height / 2)
-                .attr("y", 20)
-                .attr("text-anchor", "middle")
-                .style("font-size", "14px")
-                .text("Delinquency Z-Score");
-
-            // Info text
-            svg.append("text")
-                .attr("x", width - margin.right)
-                .attr("y", margin.top - 5)
-                .attr("text-anchor", "end")
-                .style("font-size", "12px")
-                .style("fill", "#666")
-                .text(`n = ${data.length} days`);
         }
         
         h1, h2, h3 {
