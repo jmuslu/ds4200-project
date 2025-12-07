@@ -7,290 +7,10 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            max-width: 1000px;
+            max-width: 1200px;
             margin: 0 auto;
             padding: 20px;
             line-height: 1.5;
-        }
-
-        // Interest Rates Chart Implementation  
-        function initInterestRatesChart() {
-            const filePath = "merged_mortgage_data.csv";
-            const margin = { top: 40, right: 150, bottom: 50, left: 70 },
-                  width = 1100 - margin.left - margin.right,
-                  height = 450 - margin.top - margin.bottom;
-            
-            // Add error handling for the CSV loading
-            d3.csv(filePath)
-                .then(data => {
-                    console.log("CSV loaded successfully, processing data...");
-                    
-                    // Filter: keep rows where all three rates exist
-                    const filtered = data.filter(d =>
-                        d["30yr_fixed_rate"] !== "" &&
-                        d["15yr_fixed_rate"] !== "" &&
-                        d["30yr_conforming_fico740"] !== ""
-                    );
-                    
-                    filtered.forEach(d => {
-                        d.date = new Date(d.observation_date);
-                        d.y30 = +d["30yr_fixed_rate"];
-                        d.y15 = +d["15yr_fixed_rate"];
-                        d.conf = +d["30yr_conforming_fico740"];
-                    });
-                    
-                    console.log("Valid data points:", filtered.length);
-                    console.log("Data processing complete, creating visualization...");
-                    
-                    // Clear any existing content first
-                    d3.select("#interest-rates-chart").selectAll("*").remove();
-                    
-                    const svg = d3.select("#interest-rates-chart")
-                        .append("svg")
-                        .attr("width", width + margin.left + margin.right)
-                        .attr("height", height + margin.top + margin.bottom)
-                        .append("g")
-                        .attr("transform", `translate(${margin.left},${margin.top})`);
-                    
-                    const x = d3.scaleTime()
-                        .domain(d3.extent(filtered, d => d.date))
-                        .range([0, width]);
-                    
-                    const y = d3.scaleLinear()
-                        .domain([0, d3.max(filtered, d => Math.max(d.y30, d.y15, d.conf))])
-                        .range([height, 0]);
-                    
-                    const lineGen = (key) =>
-                        d3.line()
-                            .x(d => x(d.date))
-                            .y(d => y(d[key]))
-                            .curve(d3.curveMonotoneX);
-                    
-                    // Draw lines
-                    svg.append("path")
-                        .datum(filtered)
-                        .attr("fill", "none")
-                        .attr("stroke", "#3b6ea1")
-                        .attr("stroke-width", 2)
-                        .attr("d", lineGen("y30"));
-                    
-                    svg.append("path")
-                        .datum(filtered)
-                        .attr("fill", "none")
-                        .attr("stroke", "#e89a2f")
-                        .attr("stroke-width", 2)
-                        .attr("d", lineGen("y15"));
-                    
-                    svg.append("path")
-                        .datum(filtered)
-                        .attr("fill", "none")
-                        .attr("stroke", "#1e6b2d")
-                        .attr("stroke-width", 2)
-                        .attr("d", lineGen("conf"));
-                    
-                    // Axes
-                    svg.append("g")
-                        .attr("transform", `translate(0,${height})`)
-                        .call(d3.axisBottom(x));
-                    
-                    svg.append("g").call(d3.axisLeft(y));
-                    
-                    // Legend
-                    const legend = svg.append("g")
-                        .attr("transform", `translate(${width + 20}, 20)`);
-                    
-                    const items = [
-                        { color: "#3b6ea1", text: "30-Year Fixed" },
-                        { color: "#e89a2f", text: "15-Year Fixed" },
-                        { color: "#1e6b2d", text: "30-Year Conforming" }
-                    ];
-                    
-                    items.forEach((d, i) => {
-                        let g = legend.append("g").attr("transform", `translate(0, ${i*25})`);
-                        g.append("rect").attr("width", 18).attr("height", 18).attr("fill", d.color);
-                        g.append("text").attr("x", 25).attr("y", 14).style("font-size", "14px").text(d.text);
-                    });
-                    
-                    console.log("Visualization created successfully!");
-                })
-                .catch(error => {
-                    console.error("Error loading or processing data:", error);
-                    d3.select("#interest-rates-chart")
-                        .append("div")
-                        .style("color", "red")
-                        .style("padding", "20px")
-                        .text("Error loading data. Check console for details.");
-                });
-        }
-
-        // Spread vs Delinquency Chart Implementation
-        function initSpreadDelinquencyChart() {
-            // Helper: compute z-score
-            function zscore(arr) {
-                const mean = d3.mean(arr);
-                const std = d3.deviation(arr);
-                return arr.map(v => (v - mean) / std);
-            }
-
-            // Add error handling for the CSV loading
-            d3.csv("merged_mortgage_data.csv")
-                .then(raw => {
-                    console.log("CSV loaded successfully, processing data...");
-                    
-                    // ---- 1. CLEAN DATA and DROP N/A values ----
-                    const data = raw
-                        .map(d => ({
-                            date: new Date(d.observation_date),
-                            delinquency: d.delinquency_rate_interpolated === "" ? null : +d.delinquency_rate_interpolated,
-                            conforming: d["30yr_conforming_fico740"] === "" ? null : +d["30yr_conforming_fico740"],
-                            nonconforming: d["30yr_fixed_rate"] === "" ? null : +d["30yr_fixed_rate"]
-                        }))
-                        // FILTER OUT rows with missing data
-                        .filter(d => 
-                            d.delinquency !== null && !isNaN(d.delinquency) &&
-                            d.conforming !== null && !isNaN(d.conforming) &&
-                            d.nonconforming !== null && !isNaN(d.nonconforming)
-                        )
-                        .sort((a, b) => a.date - b.date);
-
-                    console.log("Valid data points after dropping N/A:", data.length);
-
-                    if (data.length < 10) {
-                        d3.select("#spread-delinquency-chart")
-                            .append("div")
-                            .style("color", "red")
-                            .style("padding", "20px")
-                            .text(`Insufficient data: only ${data.length} rows have all required values (conforming rate, delinquency, and fixed rate).`);
-                        return;
-                    }
-
-                    // ---- 2. Compute spread ----
-                    data.forEach(d => {
-                        d.spread = d.nonconforming - d.conforming;
-                    });
-
-                    // ---- 3. Compute Z-scores ----
-                    const spreadZ = zscore(data.map(d => d.spread));
-                    const delinZ = zscore(data.map(d => d.delinquency));
-                    
-                    data.forEach((d, i) => {
-                        d.spreadZ = spreadZ[i];
-                        d.delinZ = delinZ[i];
-                    });
-
-                    console.log("Data processing complete, creating visualization...");
-
-                    // ---- 4. Create the scatterplot ----
-                    const width = 800;
-                    const height = 500;
-                    const margin = {top: 50, right: 40, bottom: 60, left: 60};
-                    
-                    // Clear any existing content first
-                    d3.select("#spread-delinquency-chart").selectAll("*").remove();
-                    
-                    const svg = d3.select("#spread-delinquency-chart")
-                        .append("svg")
-                        .attr("width", width)
-                        .attr("height", height);
-
-                    const x = d3.scaleLinear()
-                        .domain(d3.extent(data, d => d.spreadZ))
-                        .range([margin.left, width - margin.right]);
-
-                    const y = d3.scaleLinear()
-                        .domain(d3.extent(data, d => d.delinZ))
-                        .range([height - margin.bottom, margin.top]);
-
-                    // Axes
-                    svg.append("g")
-                        .attr("transform", `translate(0, ${height - margin.bottom})`)
-                        .call(d3.axisBottom(x));
-
-                    svg.append("g")
-                        .attr("transform", `translate(${margin.left}, 0)`)
-                        .call(d3.axisLeft(y));
-
-                    // Points
-                    svg.append("g")
-                        .selectAll("circle")
-                        .data(data)
-                        .enter()
-                        .append("circle")
-                        .attr("cx", d => x(d.spreadZ))
-                        .attr("cy", d => y(d.delinZ))
-                        .attr("r", 2.5)
-                        .attr("fill", "steelblue")
-                        .attr("opacity", 0.6);
-
-                    // Compute and draw regression line
-                    const meanX = d3.mean(data, d => d.spreadZ);
-                    const meanY = d3.mean(data, d => d.delinZ);
-                    
-                    const numerator = d3.sum(data, d => (d.spreadZ - meanX) * (d.delinZ - meanY));
-                    const denominator = d3.sum(data, d => Math.pow(d.spreadZ - meanX, 2));
-                    const slope = numerator / denominator;
-                    const intercept = meanY - slope * meanX;
-                    
-                    const correlation = numerator / Math.sqrt(
-                        d3.sum(data, d => Math.pow(d.spreadZ - meanX, 2)) *
-                        d3.sum(data, d => Math.pow(d.delinZ - meanY, 2))
-                    );
-
-                    const xExtent = d3.extent(data, d => d.spreadZ);
-                    svg.append("line")
-                        .attr("x1", x(xExtent[0]))
-                        .attr("y1", y(slope * xExtent[0] + intercept))
-                        .attr("x2", x(xExtent[1]))
-                        .attr("y2", y(slope * xExtent[1] + intercept))
-                        .attr("stroke", "red")
-                        .attr("stroke-width", 2)
-                        .attr("stroke-dasharray", "5,5");
-
-                    // Title with correlation
-                    svg.append("text")
-                        .attr("x", width / 2)
-                        .attr("y", margin.top - 20)
-                        .attr("text-anchor", "middle")
-                        .style("font-size", "20px")
-                        .style("font-weight", "600")
-                        .text(`Spread vs Delinquency (Z-Scores) — r = ${correlation.toFixed(3)}`);
-
-                    // X label
-                    svg.append("text")
-                        .attr("x", width / 2)
-                        .attr("y", height - 15)
-                        .attr("text-anchor", "middle")
-                        .style("font-size", "14px")
-                        .text("Spread Z-Score");
-
-                    // Y label
-                    svg.append("text")
-                        .attr("transform", "rotate(-90)")
-                        .attr("x", -height / 2)
-                        .attr("y", 20)
-                        .attr("text-anchor", "middle")
-                        .style("font-size", "14px")
-                        .text("Delinquency Z-Score");
-
-                    // Info text
-                    svg.append("text")
-                        .attr("x", width - margin.right)
-                        .attr("y", margin.top - 5)
-                        .attr("text-anchor", "end")
-                        .style("font-size", "12px")
-                        .style("fill", "#666")
-                        .text(`n = ${data.length} days`);
-
-                    console.log("Visualization created successfully!");
-                })
-                .catch(error => {
-                    console.error("Error loading or processing data:", error);
-                    d3.select("#spread-delinquency-chart")
-                        .append("div")
-                        .style("color", "red")
-                        .style("padding", "20px")
-                        .text("Error loading data. Check console for details.");
-                });
         }
         
         h1, h2, h3 {
@@ -303,426 +23,91 @@
         
         .visualization-container {
             margin: 20px 0;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
         }
         
-        /* Sankey controls */
-        .control-group { 
-            margin-bottom: 20px; 
-        }
-        .control-group label { 
-            display: block; 
-            font-weight: 600; 
-            margin-bottom: 8px; 
-            color: #444; 
-        }
-        .slider-container { 
-            display: flex; 
-            align-items: center; 
-            gap: 12px; 
-        }
-        input[type="range"] { 
-            flex: 1; 
-            height: 8px; 
-            cursor: pointer; 
-        }
-        .value-display { 
-            min-width: 80px; 
-            text-align: right; 
-            font-weight: 500; 
-            color: #666; 
-        }
-        .radio-group { 
-            display: flex; 
-            gap: 20px; 
-            margin-bottom: 16px; 
-        }
-        .radio-group label { 
-            display: flex; 
-            align-items: center; 
-            gap: 6px; 
-            font-weight: 400; 
-            cursor: pointer; 
-        }
-        .hidden { 
-            display: none; 
+        .viz-frame {
+            width: 100%;
+            height: 600px;
+            border: none;
+            background: white;
         }
     </style>
 </head>
 <body>
-    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/vega@5"></script>
-    <script src="https://cdn.jsdelivr.net/npm/vega-lite@5.20.1"></script>
-    <script src="https://cdn.jsdelivr.net/npm/vega-embed@6"></script>
-    <script src="https://d3js.org/d3.v7.min.js"></script>
-        <h1>Mortgage Market Analysis: Risk, Rates, and Market Efficiency Over Time</h1>
-        
-        <div class="section">
-            <h2>Project Overview</h2>
-            <p>This project examines the complex world of mortgage rates and related time series data, focusing on mortgage-backed securities pricing and delinquency rates from 2021 to 2025. Mortgages represent the largest financial commitment most Americans will make, while for financial institutions, mortgage lending generates substantial revenue through interest payments. Banks often securitize these loans into mortgage-backed securities (MBS), which are then traded among institutions. However, as delinquency rates - the failure of borrowers to make payments - fluctuate, these securities' valuations are directly impacted.</p>
-            
-            <p>Our analysis seeks to understand how efficiently the mortgage market prices risk by examining the relationships between interest rates, credit spreads, delinquency rates, and MBS pricing. Through comprehensive data visualization, we explore whether lenders appropriately adjust pricing based on actual default risk, and what these patterns reveal about market dynamics during a period of significant economic volatility.</p>
-        </div>
-
-        <div class="section">
-            <h2>Data Introduction</h2>
-            <p>Our comprehensive dataset contains daily observations of key mortgage market indicators going back to 1971, though data availability varies by metric. The dataset includes delinquency rates, 30-year fixed mortgage rates, 30-year rates for borrowers with FICO scores of 740 and above, 15-year fixed rates, and mortgage-backed security prices. All data sources originate from the Federal Reserve Bank of St. Louis economic database (FRED).</p>
-            
-            <p><strong>Dataset Specifications:</strong><br>
-                • Total observations: 4,583 row entries<br>
-                • Full time range: 1971-2025 (varies by variable)<br>
-                • Original variables: 6 core columns<br>
-                • Data frequency: Mixed (daily to weekly, interpolated to daily)<br>
-                • Complete overlap period: 2021-2025 (all variables available)<br>
-                • Normalization: Z-scores applied for cross-variable comparison<br>
-                • Source: Federal Reserve Bank of St. Louis (FRED)</p>
-            
-            <p>To ensure consistency across datasets with varying publication frequencies and availability periods, we employed linear interpolation to create daily observations. Different variables have different historical ranges - while some mortgage rate data extends back to 1971, the complete overlap of all variables occurs during 2021-2025. Z-score normalization was applied to enable meaningful comparisons between variables with different scales and units, preserving the underlying distribution shapes while making the data more interpretable across different economic conditions.</p>
-        </div>
-
-        <div class="section">
-            <h3>Visualization 1: Interactive Mortgage Payment Analysis (Sankey Diagram)</h3>
-            <div class="visualization-container">
-                <div id="sankey-container">
-                    <div class="control-group">
-                        <label>Mortgage Amount</label>
-                        <div class="slider-container">
-                            <input type="range" id="mortgage" min="100" max="900" step="50" value="250">
-                            <span class="value-display" id="mortgage-val">$250k</span>
-                        </div>
-                    </div>
-                    
-                    <div class="control-group">
-                        <div class="radio-group">
-                            <label><input type="radio" name="rate-mode" value="manual" checked> Manual Rate</label>
-                            <label><input type="radio" name="rate-mode" value="historical"> Historical Rate</label>
-                        </div>
-                    </div>
-                    
-                    <div class="control-group" id="rate-manual">
-                        <label>Interest Rate</label>
-                        <div class="slider-container">
-                            <input type="range" id="rate" min="1" max="18" step="0.25" value="6">
-                            <span class="value-display" id="rate-val">6.00%</span>
-                        </div>
-                    </div>
-                    
-                    <div class="control-group hidden" id="rate-historical">
-                        <label>Historical Year</label>
-                        <div class="slider-container">
-                            <input type="range" id="hist-year" min="1971" max="2025" step="1" value="2000">
-                            <span class="value-display" id="hist-year-val">2000 (8.15%)</span>
-                        </div>
-                    </div>
-                    
-                    <div class="control-group">
-                        <label>Loan Term (Years)</label>
-                        <div class="slider-container">
-                            <input type="range" id="years" min="5" max="30" step="5" value="25">
-                            <span class="value-display" id="years-val">25 years</span>
-                        </div>
-                    </div>
-                    
-                    <div id="sankey-chart" style="height: 500px;"></div>
-                </div>
-                <p>This interactive Sankey diagram demonstrates how different mortgage parameters affect monthly payments and total costs. It shows how interest rates and repayment length impact payment structures, while absolute dollar amounts don't change ratios. The visualization reveals extreme rate swings between 2021 and 2025, illustrating the practical implications of rate volatility for individual borrowers.</p>
-            </div>
-
-            <h3>Visualization 2 & 3: MBS Risk Analysis - Time Series and Annual Overview</h3>
-            <div class="visualization-container">
-                <div id="mbs-chart" style="width: 100%;"></div>
-                <p><strong>Time Series Chart:</strong> This plot visualizes the price of mortgage-backed securities over time along with delinquency rates from 2009-2025. All data is z-score normalized so that the shape of the original distribution is kept, but the prices are more interpretable as inflation may affect prices independently and cause noise.</p>
-                <p><strong>Annual Bar Chart:</strong> Expanding on the time series data, the bar chart groups together by year and averages all the prices and delinquency rates of a given year to give us a broader overview. This helps us better understand the market as we can see the different price and risk levels associated with different years. As an investor we would be able to better assess an opportunity that may fit our profile for risk and return criteria.</p>
-            </div>
-
-            <h3>Visualization 4: Interest Rate Analysis</h3>
-            <div class="visualization-container">
-                <div id="interest-rates-chart"></div>
-                <p>The interest rate chart shows mortgage rates over the period where all three rate types have complete data availability (2021-2025). We're looking at three different rate types: the 30-Year Fixed Rate (blue line) is what most people get when they buy a house, the 15-Year Fixed Rate (orange) is cheaper but you pay it off faster, and the 30-Year rate for FICO 740 and above (green) is for borrowers with excellent credit scores (FICO 740 means a credit score of 740 or higher out of 850). The gap between the blue and green lines shows the extra premium lenders charge for riskier borrowers. Key trends include unusual volatility during this period with rates jumping dramatically in 2022-2023 before gradually coming back down.</p>
-            </div>
-
-            <h3>Visualization 5: Credit Spread vs. Default Risk Analysis (Scatter Plot)</h3>
-            <div class="visualization-container">
-                <div id="spread-delinquency-chart"></div>
-                <p>This scatter plot looks at whether there's a relationship between the "spread" (how much more lenders charge regular borrowers vs. those with excellent credit scores of 740 and above) and delinquency rates (how many people are defaulting on their loans). Both are converted to z-scores so we can compare them on the same scale. Each dot is one day of data. If the correlation is positive, it means lenders are doing their job right - charging higher spreads when default risk actually goes up. The regression line and r value show how strong that relationship is.</p>
-            </div>
-        </div>
-
-        <div class="section">
-            <h2>Key Findings and Conclusions</h2>
-            <p><strong>Market Efficiency Assessment:</strong> Our analysis of the 2021-2025 period reveals a mortgage market that demonstrated both efficiency and volatility. The relationship between credit spreads and delinquency rates suggests that lenders maintained relatively effective risk pricing mechanisms even during periods of significant market stress.</p>
-            
-            <p><strong>Rate Volatility Impact:</strong> The dramatic interest rate fluctuations during this period - with rates rising sharply in 2022-2023 before gradually declining - created unprecedented challenges for both borrowers and lenders. The interactive payment analysis demonstrates how these changes translated into substantial affordability impacts for consumers.</p>
-            
-            <p><strong>Risk-Return Relationships:</strong> The correlation between MBS pricing and delinquency rates confirms that secondary markets efficiently incorporated credit risk into security valuations. Annual aggregations show clear patterns of risk-adjusted returns that align with broader economic cycles.</p>
-            
-            <h3>Future Research Directions</h3>
-            <p>This analysis opens several avenues for future investigation. First, extending the time series analysis beyond 2025 would provide insights into longer-term market cycles and the persistence of observed relationships. Second, incorporating additional macroeconomic variables such as unemployment rates, housing prices, and GDP growth could enhance predictive models of delinquency rates. Third, examining regional variations in these relationships could reveal geographic patterns in risk pricing and default behavior.</p>
-            
-            <p>Additionally, machine learning approaches could be applied to identify non-linear relationships between variables and improve forecasting accuracy. Finally, comparative analysis with international mortgage markets could provide valuable context for understanding the unique characteristics of the U.S. mortgage system during this period of economic turbulence.</p>
-        </div>
-
-        <div class="section">
-            <h3>References</h3>
-            <p><a href="https://www.fhfa.gov/document/wp2403.pdf">https://www.fhfa.gov/document/wp2403.pdf</a></p>
-            <p><a href="https://www.philadelphiafed.org/-/media/FRBP/Assets/working-papers/2025/wp25-10.pdf">https://www.philadelphiafed.org/-/media/FRBP/Assets/working-papers/2025/wp25-10.pdf</a></p>
-        </div>
+    <h1>Mortgage Market Analysis: Risk, Rates, and Market Efficiency Over Time</h1>
     
-    <script>
-        // Sankey Diagram Implementation
-        const historicalRates = {
-            1971:7.33,1972:7.46,1973:7.44,1974:8.56,1975:9.6,1976:9.1,1977:8.7,1978:9.0,1979:10.38,
-            1980:12.85,1981:14.95,1982:17.3,1983:13.46,1984:13.43,1985:13.1,1986:10.81,1987:9.37,
-            1988:10.5,1989:10.8,1990:9.83,1991:9.56,1992:8.24,1993:8.07,1994:7.23,1995:9.22,
-            1996:7.02,1997:7.67,1998:7.03,1999:6.79,2000:8.15,2001:7.07,2002:7.14,2003:5.85,
-            2004:5.87,2005:5.77,2006:6.21,2007:6.18,2008:6.07,2009:5.01,2010:5.09,2011:4.77,
-            2012:3.91,2013:3.34,2014:4.53,2015:3.73,2016:3.97,2017:4.2,2018:3.95,2019:4.51,
-            2020:3.72,2021:2.65,2022:3.22,2023:6.48,2024:6.62,2025:6.91
-        };
+    <div class="section">
+        <h2>Project Overview</h2>
+        <p>This project examines the complex world of mortgage rates and related time series data, focusing on mortgage-backed securities pricing and delinquency rates from 2021 to 2025. Mortgages represent the largest financial commitment most Americans will make, while for financial institutions, mortgage lending generates substantial revenue through interest payments. Banks often securitize these loans into mortgage-backed securities (MBS), which are then traded among institutions. However, as delinquency rates - the failure of borrowers to make payments - fluctuate, these securities' valuations are directly impacted.</p>
+        
+        <p>Our analysis seeks to understand how efficiently the mortgage market prices risk by examining the relationships between interest rates, credit spreads, delinquency rates, and MBS pricing. Through comprehensive data visualization, we explore whether lenders appropriately adjust pricing based on actual default risk, and what these patterns reveal about market dynamics during a period of significant economic volatility.</p>
+    </div>
 
-        const $ = id => document.getElementById(id);
-        const mortgageSlider = $('mortgage'), rateSlider = $('rate'), histYearSlider = $('hist-year'), yearsSlider = $('years');
-        const mortgageVal = $('mortgage-val'), rateVal = $('rate-val'), histYearVal = $('hist-year-val'), yearsVal = $('years-val');
-        const rateManualDiv = $('rate-manual'), rateHistDiv = $('rate-historical');
+    <div class="section">
+        <h2>Data Introduction</h2>
+        <p>Our comprehensive dataset contains daily observations of key mortgage market indicators with varying historical coverage going back to 1971 for some metrics. The dataset includes delinquency rates, 30-year fixed mortgage rates, 30-year rates for borrowers with FICO scores of 740 and above, 15-year fixed rates, and mortgage-backed security prices. All data sources originate from the Federal Reserve Bank of St. Louis economic database (FRED).</p>
+        
+        <p><strong>Dataset Specifications:</strong><br>
+            • Total observations: 4,583 row entries<br>
+            • Full time range: 1971-2025 (varies by variable)<br>
+            • MBS and delinquency data: 2009-2025<br>
+            • Interest rate data complete overlap: 2021-2025<br>
+            • Original variables: 6 core columns<br>
+            • Data frequency: Mixed (daily to weekly, interpolated to daily)<br>
+            • Normalization: Z-scores applied for cross-variable comparison<br>
+            • Source: Federal Reserve Bank of St. Louis (FRED)</p>
+        
+        <p>To ensure consistency across datasets with varying publication frequencies and availability periods, we employed linear interpolation to create daily observations. Different variables have different historical ranges - while some mortgage rate data extends back to 1971, the complete overlap of all variables occurs during 2021-2025. Z-score normalization was applied to enable meaningful comparisons between variables with different scales and units, preserving the underlying distribution shapes while making the data more interpretable across different economic conditions.</p>
+    </div>
 
-        function generateMortgageNodes(mortgageK, rate, years) {
-            const mortgage = mortgageK * 1000;
-            const monthlyRate = rate / 12;
-            const nPayments = years * 12;
-            const monthlyPayment = mortgage * (monthlyRate * Math.pow(1 + monthlyRate, nPayments)) / (Math.pow(1 + monthlyRate, nPayments) - 1);
-            
-            let balance = mortgage;
-            const yearlyBreakdown = [];
-            for (let y = 0; y < years; y++) {
-                let yearPrincipal = 0, yearInterest = 0;
-                for (let m = 0; m < 12; m++) {
-                    const interestPayment = balance * monthlyRate;
-                    const principalPayment = monthlyPayment - interestPayment;
-                    yearInterest += interestPayment;
-                    yearPrincipal += principalPayment;
-                    balance -= principalPayment;
-                }
-                yearlyBreakdown.push([yearPrincipal, yearInterest]);
-            }
-            
-            const label = ["Total Paid", "Principal", "Interest"];
-            const source = [], target = [], value = [];
-            const numGroups = Math.ceil(years / 5);
-            
-            for (let i = 0; i < numGroups; i++) {
-                const start = i * 5, end = Math.min((i + 1) * 5, years);
-                label.push(`Years ${start + 1}–${end}`);
-                let groupPrincipal = 0, groupInterest = 0;
-                for (let j = start; j < end; j++) {
-                    groupPrincipal += yearlyBreakdown[j][0];
-                    groupInterest += yearlyBreakdown[j][1];
-                }
-                source.push(i + 3, i + 3);
-                target.push(1, 2);
-                value.push(groupPrincipal, groupInterest);
-            }
-            
-            const totalInterest = yearlyBreakdown.reduce((s, [, i]) => s + i, 0);
-            source.push(1, 2);
-            target.push(0, 0);
-            value.push(mortgage, totalInterest);
-            
-            return { label, source, target, value };
-        }
+    <div class="section">
+        <h3>Visualization 1: Interactive Mortgage Payment Analysis (Sankey Diagram)</h3>
+        <div class="visualization-container">
+            <iframe src="sankey.html" class="viz-frame"></iframe>
+            <p>This interactive Sankey diagram demonstrates how different mortgage parameters affect monthly payments and total costs. It shows how interest rates and repayment length impact payment structures, while absolute dollar amounts don't change ratios. The visualization reveals extreme rate swings between 2021 and 2025, illustrating the practical implications of rate volatility for individual borrowers.</p>
+        </div>
 
-        function getActiveRate() {
-            const mode = document.querySelector('input[name="rate-mode"]:checked').value;
-            return mode === 'historical' ? historicalRates[+histYearSlider.value] / 100 : +rateSlider.value / 100;
-        }
+        <h3>Visualization 2 & 3: MBS Risk Analysis - Time Series and Annual Overview</h3>
+        <div class="visualization-container">
+            <iframe src="mbs_risk_analysis.html" class="viz-frame"></iframe>
+            <p><strong>Time Series Chart:</strong> This plot visualizes the price of mortgage-backed securities over time along with delinquency rates from 2009-2025. All data is z-score normalized so that the shape of the original distribution is kept, but the prices are more interpretable as inflation may affect prices independently and cause noise.</p>
+            <p><strong>Annual Bar Chart:</strong> Expanding on the time series data, the bar chart groups together by year and averages all the prices and delinquency rates of a given year to give us a broader overview. This helps us better understand the market as we can see the different price and risk levels associated with different years. As an investor we would be able to better assess an opportunity that may fit our profile for risk and return criteria.</p>
+        </div>
 
-        function updateSankeyChart() {
-            const mortgageK = +mortgageSlider.value;
-            const years = +yearsSlider.value;
-            const rate = getActiveRate();
-            const { label, source, target, value } = generateMortgageNodes(mortgageK, rate, years);
-            
-            const data = [{
-                type: 'sankey',
-                orientation: 'h',
-                node: { label, pad: 50, thickness: 30, line: { color: 'black', width: 1 } },
-                link: { source, target, value, line: { color: 'black', width: 0.5 } }
-            }];
-            
-            const layout = { font: { size: 12 }, margin: { t: 20, b: 20 } };
-            Plotly.react('sankey-chart', data, layout, { responsive: true });
-        }
+        <h3>Visualization 4: Interest Rate Analysis</h3>
+        <div class="visualization-container">
+            <iframe src="interest_rates.html" class="viz-frame"></iframe>
+            <p>The interest rate chart shows mortgage rates over the period where all three rate types have complete data availability (2021-2025). We're looking at three different rate types: the 30-Year Fixed Rate (blue line) is what most people get when they buy a house, the 15-Year Fixed Rate (orange) is cheaper but you pay it off faster, and the 30-Year rate for FICO 740 and above (green) is for borrowers with excellent credit scores (FICO 740 means a credit score of 740 or higher out of 850). The gap between the blue and green lines shows the extra premium lenders charge for riskier borrowers. Key trends include unusual volatility during this period with rates jumping dramatically in 2022-2023 before gradually coming back down.</p>
+        </div>
 
-        function updateDisplays() {
-            mortgageVal.textContent = `${mortgageSlider.value}k`;
-            rateVal.textContent = `${(+rateSlider.value).toFixed(2)}%`;
-            const yr = +histYearSlider.value;
-            histYearVal.textContent = `${yr} (${historicalRates[yr].toFixed(2)}%)`;
-            yearsVal.textContent = `${yearsSlider.value} years`;
-        }
+        <h3>Visualization 5: Credit Spread vs. Default Risk Analysis (Scatter Plot)</h3>
+        <div class="visualization-container">
+            <iframe src="spread_vs_delinquency.html" class="viz-frame"></iframe>
+            <p>This scatter plot looks at whether there's a relationship between the "spread" (how much more lenders charge regular borrowers vs. those with excellent credit scores of 740 and above) and delinquency rates (how many people are defaulting on their loans). Both are converted to z-scores so we can compare them on the same scale. Each dot is one day of data. If the correlation is positive, it means lenders are doing their job right - charging higher spreads when default risk actually goes up. The regression line and r value show how strong that relationship is.</p>
+        </div>
+    </div>
 
-        function toggleRateMode() {
-            const mode = document.querySelector('input[name="rate-mode"]:checked').value;
-            rateManualDiv.classList.toggle('hidden', mode !== 'manual');
-            rateHistDiv.classList.toggle('hidden', mode !== 'historical');
-            updateSankeyChart();
-        }
+    <div class="section">
+        <h2>Key Findings and Conclusions</h2>
+        <p><strong>Market Efficiency Assessment:</strong> Our analysis of the 2021-2025 period reveals a mortgage market that demonstrated both efficiency and volatility. The relationship between credit spreads and delinquency rates suggests that lenders maintained relatively effective risk pricing mechanisms even during periods of significant market stress.</p>
+        
+        <p><strong>Rate Volatility Impact:</strong> The dramatic interest rate fluctuations during this period - with rates rising sharply in 2022-2023 before gradually declining - created unprecedented challenges for both borrowers and lenders. The interactive payment analysis demonstrates how these changes translated into substantial affordability impacts for consumers.</p>
+        
+        <p><strong>Risk-Return Relationships:</strong> The correlation between MBS pricing and delinquency rates confirms that secondary markets efficiently incorporated credit risk into security valuations. Annual aggregations show clear patterns of risk-adjusted returns that align with broader economic cycles.</p>
+        
+        <h3>Future Research Directions</h3>
+        <p>This analysis opens several avenues for future investigation. First, extending the time series analysis beyond 2025 would provide insights into longer-term market cycles and the persistence of observed relationships. Second, incorporating additional macroeconomic variables such as unemployment rates, housing prices, and GDP growth could enhance predictive models of delinquency rates. Third, examining regional variations in these relationships could reveal geographic patterns in risk pricing and default behavior.</p>
+        
+        <p>Additionally, machine learning approaches could be applied to identify non-linear relationships between variables and improve forecasting accuracy. Finally, comparative analysis with international mortgage markets could provide valuable context for understanding the unique characteristics of the U.S. mortgage system during this period of economic turbulence.</p>
+    </div>
 
-        // MBS Chart Implementation
-        function initMBSChart() {
-            // This is a simplified version - the full dataset from your document is quite large
-            // I'll include a representative sample and the annual data
-            const spec = {
-                "config": {"view": {"continuousWidth": 300, "continuousHeight": 300}}, 
-                "vconcat": [
-                    {
-                        "layer": [
-                            {
-                                "data": {"name": "timeSeriesData"}, 
-                                "mark": {"type": "line", "size": 3}, 
-                                "encoding": {
-                                    "color": {
-                                        "field": "metric", 
-                                        "legend": {
-                                            "labelExpr": "datum.value == 'mbs_z_score' ? 'MBS Price' : 'Delinquency Rate'", 
-                                            "title": "Metric"
-                                        }, 
-                                        "scale": {"domain": ["mbs_z_score", "delinq_z_score"], "range": ["steelblue", "orange"]}, 
-                                        "type": "nominal"
-                                    }, 
-                                    "x": {"field": "observation_date", "title": "Date", "type": "temporal"}, 
-                                    "y": {"field": "z_score", "scale": {"domain": [-2, 2]}, "title": "Z-score (vs entire 2009-2025 period)", "type": "quantitative"}
-                                }, 
-                                "title": "Z Scores of Mortgage Backed Securities Prices and Delinquency Rates Over Time"
-                            }
-                        ], 
-                        "height": 350, 
-                        "width": 900
-                    }, 
-                    {
-                        "layer": [
-                            {
-                                "data": {"name": "annualData"}, 
-                                "mark": {"type": "bar"}, 
-                                "encoding": {
-                                    "color": {
-                                        "field": "metric", 
-                                        "legend": {
-                                            "labelExpr": "datum.value == 'mbs_z_score' ? 'MBS Price' : 'Delinquency Rate'", 
-                                            "title": "Metric"
-                                        }, 
-                                        "scale": {"domain": ["mbs_z_score", "delinq_z_score"], "range": ["steelblue", "orange"]}, 
-                                        "type": "nominal"
-                                    }, 
-                                    "x": {"axis": {"labelAngle": -45}, "field": "year", "title": "Year", "type": "ordinal"}, 
-                                    "xOffset": {"field": "metric", "type": "nominal"}, 
-                                    "y": {"field": "z_score", "scale": {"domain": [-2, 2]}, "title": "Average Z-score (vs all years)", "type": "quantitative"}
-                                }, 
-                                "title": "Year-by-Year Risk Profile: MBS Prices vs Delinquency Rates Z-Scores"
-                            }
-                        ], 
-                        "height": 350, 
-                        "width": 900
-                    }
-                ], 
-                "$schema": "https://vega.github.io/schema/vega-lite/v5.20.1.json", 
-                "datasets": {
-                    "timeSeriesData": [
-                        // Sample of the time series data - including key periods
-                        {"observation_date": "2009-07-01T00:00:00", "year": 2009, "metric": "mbs_z_score", "z_score": -1.4332476586095648},
-                        {"observation_date": "2010-07-01T00:00:00", "year": 2010, "metric": "mbs_z_score", "z_score": -1.4049278974817925},
-                        {"observation_date": "2012-07-01T00:00:00", "year": 2012, "metric": "mbs_z_score", "z_score": -0.8873922484635602},
-                        {"observation_date": "2015-07-01T00:00:00", "year": 2015, "metric": "mbs_z_score", "z_score": -0.6293494931279904},
-                        {"observation_date": "2018-07-01T00:00:00", "year": 2018, "metric": "mbs_z_score", "z_score": -0.082030407001958},
-                        {"observation_date": "2020-07-01T00:00:00", "year": 2020, "metric": "mbs_z_score", "z_score": 0.57056472629799},
-                        {"observation_date": "2021-07-01T00:00:00", "year": 2021, "metric": "mbs_z_score", "z_score": 1.5386867887868636},
-                        {"observation_date": "2022-07-01T00:00:00", "year": 2022, "metric": "mbs_z_score", "z_score": 1.5995387711575777},
-                        {"observation_date": "2023-07-01T00:00:00", "year": 2023, "metric": "mbs_z_score", "z_score": 1.074837362934328},
-                        {"observation_date": "2024-07-01T00:00:00", "year": 2024, "metric": "mbs_z_score", "z_score": 1.1157877355911392},
-                        {"observation_date": "2025-07-01T00:00:00", "year": 2025, "metric": "mbs_z_score", "z_score": 1.3088949782783093},
-                        
-                        {"observation_date": "2009-07-01T00:00:00", "year": 2009, "metric": "delinq_z_score", "z_score": 1.2846589626674072},
-                        {"observation_date": "2010-07-01T00:00:00", "year": 2010, "metric": "delinq_z_score", "z_score": 1.6279540278629463},
-                        {"observation_date": "2012-07-01T00:00:00", "year": 2012, "metric": "delinq_z_score", "z_score": 1.5795029323944991},
-                        {"observation_date": "2015-07-01T00:00:00", "year": 2015, "metric": "delinq_z_score", "z_score": 0.0852493723743325},
-                        {"observation_date": "2018-07-01T00:00:00", "year": 2018, "metric": "delinq_z_score", "z_score": -0.6220277425987802},
-                        {"observation_date": "2020-07-01T00:00:00", "year": 2020, "metric": "delinq_z_score", "z_score": -0.6673213509468121},
-                        {"observation_date": "2021-07-01T00:00:00", "year": 2021, "metric": "delinq_z_score", "z_score": -0.8260667378973661},
-                        {"observation_date": "2022-07-01T00:00:00", "year": 2022, "metric": "delinq_z_score", "z_score": -0.9591563047346991},
-                        {"observation_date": "2023-07-01T00:00:00", "year": 2023, "metric": "delinq_z_score", "z_score": -0.9940321852011088},
-                        {"observation_date": "2024-07-01T00:00:00", "year": 2024, "metric": "delinq_z_score", "z_score": -0.9903352527889606},
-                        {"observation_date": "2025-07-01T00:00:00", "year": 2025, "metric": "delinq_z_score", "z_score": -0.9730532072960272}
-                    ],
-                    "annualData": [
-                        {"year": "2009", "metric": "mbs_z_score", "z_score": -1.4467527904820987},
-                        {"year": "2010", "metric": "mbs_z_score", "z_score": -1.3502316825988123},
-                        {"year": "2011", "metric": "mbs_z_score", "z_score": -1.1429634343109525},
-                        {"year": "2012", "metric": "mbs_z_score", "z_score": -0.8964745497027654},
-                        {"year": "2013", "metric": "mbs_z_score", "z_score": -0.8711804805288786},
-                        {"year": "2014", "metric": "mbs_z_score", "z_score": -0.8356858280947639},
-                        {"year": "2015", "metric": "mbs_z_score", "z_score": -0.6221466944881704},
-                        {"year": "2016", "metric": "mbs_z_score", "z_score": -0.4301161616099065},
-                        {"year": "2017", "metric": "mbs_z_score", "z_score": -0.2181255016076076},
-                        {"year": "2018", "metric": "mbs_z_score", "z_score": -0.09521069043789185},
-                        {"year": "2019", "metric": "mbs_z_score", "z_score": 0.18761740978517055},
-                        {"year": "2020", "metric": "mbs_z_score", "z_score": 0.6457273945712723},
-                        {"year": "2021", "metric": "mbs_z_score", "z_score": 1.4802390906453913},
-                        {"year": "2022", "metric": "mbs_z_score", "z_score": 1.5988888996918886},
-                        {"year": "2023", "metric": "mbs_z_score", "z_score": 1.114927187812163},
-                        {"year": "2024", "metric": "mbs_z_score", "z_score": 1.1336873314665727},
-                        {"year": "2025", "metric": "mbs_z_score", "z_score": 1.276901503853949},
-                        
-                        {"year": "2009", "metric": "delinq_z_score", "z_score": 1.5594068715735805},
-                        {"year": "2010", "metric": "delinq_z_score", "z_score": 1.6598692260557506},
-                        {"year": "2011", "metric": "delinq_z_score", "z_score": 1.5618048015409671},
-                        {"year": "2012", "metric": "delinq_z_score", "z_score": 1.5143357096928614},
-                        {"year": "2013", "metric": "delinq_z_score", "z_score": 1.0769611703798943},
-                        {"year": "2014", "metric": "delinq_z_score", "z_score": 0.5568179578606371},
-                        {"year": "2015", "metric": "delinq_z_score", "z_score": 0.10359402464697874},
-                        {"year": "2016", "metric": "delinq_z_score", "z_score": -0.2156731305054062},
-                        {"year": "2017", "metric": "delinq_z_score", "z_score": -0.42680535844952894},
-                        {"year": "2018", "metric": "delinq_z_score", "z_score": -0.6071224513018699},
-                        {"year": "2019", "metric": "delinq_z_score", "z_score": -0.7710892724604018},
-                        {"year": "2020", "metric": "delinq_z_score", "z_score": -0.7178144387364654},
-                        {"year": "2021", "metric": "delinq_z_score", "z_score": -0.8056730719340202},
-                        {"year": "2022", "metric": "delinq_z_score", "z_score": -0.948574306815404},
-                        {"year": "2023", "metric": "delinq_z_score", "z_score": -0.9954686438793231},
-                        {"year": "2024", "metric": "delinq_z_score", "z_score": -0.9867275743984403},
-                        {"year": "2025", "metric": "delinq_z_score", "z_score": -0.9735253586003456}
-                    ]
-                }
-            };
-            
-            vegaEmbed("#mbs-chart", spec, {"mode": "vega-lite"})
-                .catch(error => console.error('MBS Chart Error:', error));
-        }
-
-        // Initialize everything when page loads
-        document.addEventListener('DOMContentLoaded', function() {
-            // Initialize Sankey controls
-            if (mortgageSlider) {
-                [mortgageSlider, rateSlider, histYearSlider, yearsSlider].forEach(el => {
-                    el.addEventListener('input', () => { updateDisplays(); updateSankeyChart(); });
-                });
-                document.querySelectorAll('input[name="rate-mode"]').forEach(el => el.addEventListener('change', toggleRateMode));
-                
-                updateDisplays();
-                updateSankeyChart();
-            }
-            
-            // Initialize MBS chart
-            if (document.getElementById('mbs-chart')) {
-                initMBSChart();
-            }
-
-            // Initialize Interest Rates chart
-            if (document.getElementById('interest-rates-chart')) {
-                initInterestRatesChart();
-            }
-
-            // Initialize Spread vs Delinquency chart  
-            if (document.getElementById('spread-delinquency-chart')) {
-                initSpreadDelinquencyChart();
-            }
-        });
-    </script>
-    </body>
+    <div class="section">
+        <h3>References</h3>
+        <p><a href="https://www.fhfa.gov/document/wp2403.pdf">https://www.fhfa.gov/document/wp2403.pdf</a></p>
+        <p><a href="https://www.philadelphiafed.org/-/media/FRBP/Assets/working-papers/2025/wp25-10.pdf">https://www.philadelphiafed.org/-/media/FRBP/Assets/working-papers/2025/wp25-10.pdf</a></p>
+    </div>
+</body>
 </html>
