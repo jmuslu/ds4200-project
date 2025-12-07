@@ -3,36 +3,125 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Index</title>
+    <title>Mortgage Market Analysis: Risk, Rates, and Market Efficiency Over Time</title>
     <style>
         body {
-            font-family: system-ui, sans-serif;
-            max-width: 600px;
-            margin: 2rem auto;
-            padding: 1rem;
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.5;
         }
-        ul {
-            padding: 0;
+        
+        h1, h2, h3 {
+            color: #333;
         }
-        li {
-            margin: 0.75rem 0;
+        
+        .section {
+            margin-bottom: 40px;
         }
-        a {
-            color: #0066cc;
-            text-decoration: none;
+        
+        .visualization-container {
+            margin: 20px 0;
         }
-        a:hover {
-            text-decoration: underline;
+        
+        .visualization-placeholder {
+            background: #f5f5f5;
+            height: 400px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 10px 0;
+            border: 1px solid #ccc;
         }
     </style>
 </head>
 <body>
-    <h1>Our Graphs</h1>
-    <ul>
-        <li><a href="sankey.html">Sankey</a></li>
-        <li><a href="mbs_risk_analysis.html">MBS Risk Analysis</a></li>
-        <li><a href="interest_rates.html">Interest Rates</a></li>
-        <li><a href="spread_vs_delinquency.html">Spread vs Delinquency</a></li>
-    </ul>
-</body>
+        <h1>Mortgage Market Analysis: Risk, Rates, and Market Efficiency Over Time</h1>
+        
+        <div class="section">
+            <h2>Project Overview</h2>
+            <p>This project examines the complex world of mortgage rates and related time series data, focusing on mortgage-backed securities pricing and delinquency rates from 2021 to 2025. Mortgages represent the largest financial commitment most Americans will make, while for financial institutions, mortgage lending generates substantial revenue through interest payments. Banks often securitize these loans into mortgage-backed securities (MBS), which are then traded among institutions. However, as delinquency rates - the failure of borrowers to make payments - fluctuate, these securities' valuations are directly impacted.</p>
+            
+            <p>Our analysis seeks to understand how efficiently the mortgage market prices risk by examining the relationships between interest rates, credit spreads, delinquency rates, and MBS pricing. Through comprehensive data visualization, we explore whether lenders appropriately adjust pricing based on actual default risk, and what these patterns reveal about market dynamics during a period of significant economic volatility.</p>
+        </div>
+
+        <div class="section">
+            <h2>Data Introduction</h2>
+            <p>Our comprehensive dataset contains daily observations of key mortgage market indicators going back to 1971, though data availability varies by metric. The dataset includes delinquency rates, 30-year fixed mortgage rates, 30-year rates for borrowers with FICO scores of 740 and above, 15-year fixed rates, and mortgage-backed security prices. All data sources originate from the Federal Reserve Bank of St. Louis economic database (FRED).</p>
+            
+            <p><strong>Dataset Specifications:</strong><br>
+                • Total observations: 4,583 row entries<br>
+                • Full time range: 1971-2025 (varies by variable)<br>
+                • Original variables: 6 core columns<br>
+                • Data frequency: Mixed (daily to weekly, interpolated to daily)<br>
+                • Complete overlap period: 2021-2025 (all variables available)<br>
+                • Normalization: Z-scores applied for cross-variable comparison<br>
+                • Source: Federal Reserve Bank of St. Louis (FRED)</p>
+            
+            <p>To ensure consistency across datasets with varying publication frequencies and availability periods, we employed linear interpolation to create daily observations. Different variables have different historical ranges - while some mortgage rate data extends back to 1971, the complete overlap of all variables occurs during 2021-2025. Z-score normalization was applied to enable meaningful comparisons between variables with different scales and units, preserving the underlying distribution shapes while making the data more interpretable across different economic conditions.</p>
+        </div>
+
+        <div class="section">
+            <h3>Visualization 1: Interactive Mortgage Payment Analysis (Sankey Diagram)</h3>
+            <div class="visualization-container">
+                <div class="visualization-placeholder">
+                    [Sankey Diagram - Interactive Mortgage Payment Breakdown]
+                </div>
+                <p>This interactive Sankey diagram demonstrates how different mortgage parameters affect monthly payments and total costs. It shows how interest rates and repayment length impact payment structures, while absolute dollar amounts don't change ratios. The visualization reveals extreme rate swings between 2021 and 2025, illustrating the practical implications of rate volatility for individual borrowers.</p>
+            </div>
+
+            <h3>Visualization 2: MBS Pricing and Delinquency Rate Over Time (Line Chart)</h3>
+            <div class="visualization-container">
+                <div class="visualization-placeholder">
+                    [Line Chart - MBS Price vs Delinquency Rate Over Time]
+                </div>
+                <p>This plot visualizes the price of mortgage-backed securities over time along with delinquency rates. All data is z-score normalized so that the shape of the original distribution is kept, but the prices are more interpretable as inflation may affect prices independently and cause noise.</p>
+            </div>
+
+            <h3>Visualization 3: Annual Risk and Return Overview (Bar Chart)</h3>
+            <div class="visualization-container">
+                <div class="visualization-placeholder">
+                    [Bar Chart - Yearly Averaged MBS Prices and Delinquency Rates]
+                </div>
+                <p>Expanding on the previous data, we can group together by year and average all the prices and delinquency rates of a given year to give us a broader overview. This helps us better understand the market as we can see the different price and risk levels associated with different years. As an investor we would be able to better assess an opportunity that may fit our profile for risk and return criteria.</p>
+            </div>
+
+            <h3>Visualization 4: Interest Rate Analysis</h3>
+            <div class="visualization-container">
+                <div class="visualization-placeholder">
+                    [Multi-Line Chart - 30-Year Fixed, 15-Year Fixed, and 30-Year FICO 740+ Rates]
+                </div>
+                <p>The interest rate chart shows mortgage rates over the period where all three rate types have complete data availability (2021-2025). We're looking at three different rate types: the 30-Year Fixed Rate (blue line) is what most people get when they buy a house, the 15-Year Fixed Rate (orange) is cheaper but you pay it off faster, and the 30-Year rate for FICO 740 and above (green) is for borrowers with excellent credit scores (FICO 740 means a credit score of 740 or higher out of 850). The gap between the blue and green lines shows the extra premium lenders charge for riskier borrowers. Key trends include unusual volatility during this period with rates jumping dramatically in 2022-2023 before gradually coming back down.</p>
+            </div>
+
+            <h3>Visualization 5: Credit Spread vs. Default Risk Analysis (Scatter Plot)</h3>
+            <div class="visualization-container">
+                <div class="visualization-placeholder">
+                    [Scatter Plot - Credit Spread vs Delinquency Rate with Regression Line]
+                </div>
+                <p>This scatter plot looks at whether there's a relationship between the "spread" (how much more lenders charge regular borrowers vs. those with excellent credit scores of 740 and above) and delinquency rates (how many people are defaulting on their loans). Both are converted to z-scores so we can compare them on the same scale. Each dot is one day of data. If the correlation is positive, it means lenders are doing their job right - charging higher spreads when default risk actually goes up. The regression line and r value show how strong that relationship is.</p>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Key Findings and Conclusions</h2>
+            <p><strong>Market Efficiency Assessment:</strong> Our analysis of the 2021-2025 period reveals a mortgage market that demonstrated both efficiency and volatility. The relationship between credit spreads and delinquency rates suggests that lenders maintained relatively effective risk pricing mechanisms even during periods of significant market stress.</p>
+            
+            <p><strong>Rate Volatility Impact:</strong> The dramatic interest rate fluctuations during this period - with rates rising sharply in 2022-2023 before gradually declining - created unprecedented challenges for both borrowers and lenders. The interactive payment analysis demonstrates how these changes translated into substantial affordability impacts for consumers.</p>
+            
+            <p><strong>Risk-Return Relationships:</strong> The correlation between MBS pricing and delinquency rates confirms that secondary markets efficiently incorporated credit risk into security valuations. Annual aggregations show clear patterns of risk-adjusted returns that align with broader economic cycles.</p>
+            
+            <h3>Future Research Directions</h3>
+            <p>This analysis opens several avenues for future investigation. First, extending the time series analysis beyond 2025 would provide insights into longer-term market cycles and the persistence of observed relationships. Second, incorporating additional macroeconomic variables such as unemployment rates, housing prices, and GDP growth could enhance predictive models of delinquency rates. Third, examining regional variations in these relationships could reveal geographic patterns in risk pricing and default behavior.</p>
+            
+            <p>Additionally, machine learning approaches could be applied to identify non-linear relationships between variables and improve forecasting accuracy. Finally, comparative analysis with international mortgage markets could provide valuable context for understanding the unique characteristics of the U.S. mortgage system during this period of economic turbulence.</p>
+        </div>
+
+        <div class="section">
+            <h3>References</h3>
+            <p><a href="https://www.fhfa.gov/document/wp2403.pdf">https://www.fhfa.gov/document/wp2403.pdf</a></p>
+            <p><a href="https://www.philadelphiafed.org/-/media/FRBP/Assets/working-papers/2025/wp25-10.pdf">https://www.philadelphiafed.org/-/media/FRBP/Assets/working-papers/2025/wp25-10.pdf</a></p>
+        </div>
+    </body>
 </html>
