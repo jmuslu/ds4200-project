@@ -1,0 +1,31 @@
+Project Accessible at https://jmuslu.github.io/ds4200-project/
+
+By Joseph Muslu, Kevin Cooper, and Yuwen Pan 
+
+Design Inspiration:
+
+Joseph: 
+
+Vis 2: Z Scores of Mortgage Backed Securities Prices and Delinquency Rates Plotted Over time
+
+As a finance major, there is always a big emphasis on risk and return in lots of my course work. What price does an investment have to be to justify the level of risk? I saw an interesting opportunity to do this with my visualization with mortgage backed securities and delinquency rates. When I first tried to plot it, all of the prices felt like they were arbitrarily increasing no matter what happened with the interest rates, but then I came to the realization that in order to actually capture this relationship between them without other factors such as inflation that measure price I need to just look at the shapes of the distributions and the way I accomplish that is through normalization. Once I did that to both the variables, the inverse relationship became clear. 
+
+
+
+Vis 3: Year-by-Year Risk Profile: How do the Price of Mortgage Backed Securities Z score Compare to the relative Delinquency Rates Z scores through Years?
+
+I wanted to drill down further on my previous discoveries in this visualization by taking the information from the previous graph, and putting it into a format that could directly assess and compare the values across each variable, so a bar plot seemed natural. That way I could directly separate it into years for easier analysis and the overall trends would still be clear. This made it more obvious. When looking at it, it was important for me to keep in mind that at the same risk level, a lower price was always better, as it had more room appreciate so I wanted to be able to directly be able to compare and assess these sorts of situations more obviously and the side by side bar chart was a natural fit. 
+
+Kevin:
+
+Sankey
+
+I am a data science major with a strong interest in economics. With that in mind, I was thinking about how I could combine my two passions. Interactivity made sense – I could bring live data analysis and coding to the table. Talking with Joseph and Yuwen, we realised that mortgage data was interesting and had lots of hidden patterns relevant to us as young adults. Moving out of college as upperclassmen, we necessarily must start to think about our own homes.
+
+What factors most affect how much we must pay back for a mortgage? Does a longer term mortgage help or hurt? To answer these questions, I took historical mortgage rate data and wrote a program that calculated when and where things must be done for it. It soon became apparent that it was all tradeoffs – longer mortgages meant you paid more overall, but each monthly payment was really quite small. The only pure negative was interest – with a high enough interest rate, your first payments would be almost entirely interest, so you would take a while to work down your mortgage into paying back principle.
+
+Yuwen:
+Interest Rates Over Time 
+When I first started designing the interest-rate visualization, my initial idea was very similar to Joseph’s: plot all three mortgage rate lines together and let the differences speak for themselves. But as me and my group spent more time exploring the data from a data science perspective, my thinking began to shift. I realized that just placing three lines on a chart wasn’t enough to convey the deeper patterns in timing, credit risk, and macroeconomic influence. This led me to consider smoother rendering, contextual shading for major events like the 2022 inflation spike, and interactive filters to highlight how spreads evolve across different time periods. As my design ideas became more ambitious, Joseph and Kevin both stepped in to help me translate them into a functional D3 visualization. They walked me through how D3 scales, transitions, and event listeners could bring my conceptual ideas to life—especially the hover tooltips and the “difference mode” for displaying spreads. Their guidance helped me move from a basic line graph toward a more thoughtful, dynamic visualization. Through this process, my understanding of both the data and the visualization tool grew, turning my early, simple idea into a richer and more analytically grounded design.
+Spread vs Delinquency
+For the spread-vs-delinquency visualization, my original thought was to create a straightforward scatter plot to see whether any relationship existed. But once I started working with the raw numbers, I quickly realized that the scales made it almost impossible to detect meaningful trends. As a data science major, this pushed me to rethink the problem: instead of comparing absolute values, I needed to compare standardized movements. That realization led me to apply Z-score normalization, which immediately revealed the inverse relationship I suspected. After discovering this pattern analytically, I wanted the visualization itself to make the insight easy for users to explore. This was the point where Joseph and Kevin helped me again, especially with implementing the regression line and interactive hover behavior in D3. They told me how to structure the SVG layers, how to normalize the numbers, and how to add smooth highlighting of individual points. Their guidance helped transform what began as a simple scatter plot idea into a dynamic D3 visualization that communicates the relationship clearly and interactively. Looking back, my thinking evolved from “just visualize the points” to understanding how preprocessing, normalization, and D3 interactivity work together to uncover and communicate deeper patterns in the data.
